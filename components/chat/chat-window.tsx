@@ -22,9 +22,9 @@ interface Message {
 }
 
 interface ChatWindowProps {
-  conversationId: number
+  conversationId: string
   otherUserName: string
-  currentUserId: number
+  currentUserId: string
   onBack?: () => void
 }
 

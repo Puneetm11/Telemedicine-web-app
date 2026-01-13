@@ -10,11 +10,20 @@ import { ChatWindow } from "@/components/chat/chat-window"
 import { MessageSquare } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json())
+const fetcher = async (url: string) => {
+  const res = await fetch(url)
+  const data = await res.json()
+  // Handle both response formats: array directly or error object
+  if (Array.isArray(data)) {
+    return data
+  }
+  // If error response, return empty array to prevent crashes
+  return []
+}
 
 interface Conversation {
-  id: number
-  other_user_id: number
+  id: string
+  other_user_id: string
   other_user_name: string
   other_user_role: string
   last_message: string | null
@@ -23,8 +32,9 @@ interface Conversation {
 }
 
 interface User {
-  id: number
-  name: string
+  id: string
+  firstName: string
+  lastName: string
   email: string
   role: string
 }
@@ -40,7 +50,12 @@ export default function DoctorMessagesPage() {
   useEffect(() => {
     fetch("/api/auth/me")
       .then((res) => res.json())
-      .then((data) => setCurrentUser(data.user))
+      .then((data) => {
+        if (data.success && data.data?.user) {
+          setCurrentUser(data.data.user)
+        }
+      })
+      .catch((error) => console.error("Error fetching user:", error))
   }, [])
 
   const formatTime = (date: string | null) => {

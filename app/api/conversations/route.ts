@@ -1,36 +1,29 @@
 import { NextResponse } from "next/server"
 import { sql } from "@/lib/db"
-import { verifyToken } from "@/lib/auth"
-import { cookies } from "next/headers"
+import { getCurrentUser } from "@/lib/auth"
 
 export async function GET() {
   try {
-    const cookieStore = await cookies()
-    const token = cookieStore.get("token")?.value
-    if (!token) {
+    const user = await getCurrentUser()
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
-    const payload = await verifyToken(token)
-    if (!payload) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 })
     }
 
     const conversations = await sql`
       SELECT 
         c.id,
         c.created_at,
-        c.updated_at,
+        c.last_message_at as "updated_at",
         CASE 
-          WHEN c.patient_id = ${payload.userId} THEN d.user_id
-          ELSE p.user_id
+          WHEN c.patient_id = ${user.id} THEN c.doctor_id
+          ELSE c.patient_id
         END as other_user_id,
         CASE 
-          WHEN c.patient_id = ${payload.userId} THEN du.name
-          ELSE pu.name
+          WHEN c.patient_id = ${user.id} THEN CONCAT(du.first_name, ' ', du.last_name)
+          ELSE CONCAT(pu.first_name, ' ', pu.last_name)
         END as other_user_name,
         CASE 
-          WHEN c.patient_id = ${payload.userId} THEN 'doctor'
+          WHEN c.patient_id = ${user.id} THEN 'doctor'
           ELSE 'patient'
         END as other_user_role,
         dp.specialization,
@@ -47,17 +40,15 @@ export async function GET() {
         (
           SELECT COUNT(*) FROM messages 
           WHERE conversation_id = c.id 
-          AND sender_id != ${payload.userId}
+          AND sender_id != ${user.id}
           AND is_read = false
         )::int as unread_count
       FROM conversations c
-      LEFT JOIN patient_profiles p ON c.patient_id = p.id
-      LEFT JOIN users pu ON p.user_id = pu.id
-      LEFT JOIN doctor_profiles d ON c.doctor_id = d.id
-      LEFT JOIN users du ON d.user_id = du.id
-      LEFT JOIN doctor_profiles dp ON c.doctor_id = dp.id
-      WHERE p.user_id = ${payload.userId} OR d.user_id = ${payload.userId}
-      ORDER BY c.updated_at DESC
+      LEFT JOIN users pu ON c.patient_id = pu.id
+      LEFT JOIN users du ON c.doctor_id = du.id
+      LEFT JOIN doctor_profiles dp ON c.doctor_id = dp.user_id
+      WHERE c.patient_id = ${user.id} OR c.doctor_id = ${user.id}
+      ORDER BY c.last_message_at DESC
     `
 
     return NextResponse.json(conversations)
@@ -69,41 +60,33 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const cookieStore = await cookies()
-    const token = cookieStore.get("token")?.value
-    if (!token) {
+    const user = await getCurrentUser()
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
-    const payload = await verifyToken(token)
-    if (!payload) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 })
     }
 
     const { doctorId, patientId } = await request.json()
 
-    // Get profile IDs
-    let patientProfileId: number
-    let doctorProfileId: number
+    // The schema uses user IDs directly, not profile IDs
+    let patientUserId: string
+    let doctorUserId: string
 
-    if (payload.role === "patient") {
-      const patientProfile = await sql`
-        SELECT id FROM patient_profiles WHERE user_id = ${payload.userId}
-      `
-      patientProfileId = patientProfile[0]?.id
-      doctorProfileId = doctorId
+    if (user.role === "patient") {
+      patientUserId = user.id
+      doctorUserId = doctorId
     } else {
-      const doctorProfile = await sql`
-        SELECT id FROM doctor_profiles WHERE user_id = ${payload.userId}
-      `
-      doctorProfileId = doctorProfile[0]?.id
-      patientProfileId = patientId
+      doctorUserId = user.id
+      patientUserId = patientId
+    }
+
+    if (!patientUserId || !doctorUserId) {
+      return NextResponse.json({ error: "Missing required user IDs" }, { status: 400 })
     }
 
     // Check if conversation exists
     const existing = await sql`
       SELECT id FROM conversations 
-      WHERE patient_id = ${patientProfileId} AND doctor_id = ${doctorProfileId}
+      WHERE patient_id = ${patientUserId} AND doctor_id = ${doctorUserId}
     `
 
     if (existing.length > 0) {
@@ -113,7 +96,7 @@ export async function POST(request: Request) {
     // Create new conversation
     const conversation = await sql`
       INSERT INTO conversations (patient_id, doctor_id)
-      VALUES (${patientProfileId}, ${doctorProfileId})
+      VALUES (${patientUserId}, ${doctorUserId})
       RETURNING id, created_at, updated_at
     `
 

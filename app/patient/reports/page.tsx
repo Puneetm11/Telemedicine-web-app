@@ -33,7 +33,18 @@ import {
 import { FileText, Upload, Trash2, Download, Eye, Share2, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json())
+const fetcher = async (url: string) => {
+  const res = await fetch(url)
+  const data = await res.json()
+  // Handle both response formats: { success: true, data: [...] } or array directly
+  if (data.success && data.data) {
+    return data.data
+  }
+  if (Array.isArray(data)) {
+    return data
+  }
+  return []
+}
 
 interface Report {
   id: number
@@ -49,8 +60,8 @@ interface Report {
 
 interface Doctor {
   id: number
-  user_id: number
-  name: string
+  firstName: string
+  lastName: string
   specialization: string
 }
 
@@ -212,7 +223,7 @@ export default function PatientReportsPage() {
                   <SelectContent>
                     {doctors.map((doctor) => (
                       <SelectItem key={doctor.id} value={doctor.id.toString()}>
-                        Dr. {doctor.name} - {doctor.specialization}
+                        Dr. {doctor.firstName} {doctor.lastName} - {doctor.specialization}
                       </SelectItem>
                     ))}
                   </SelectContent>

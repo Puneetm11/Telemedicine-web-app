@@ -82,7 +82,7 @@ export default async function PatientBillingPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Total Spent</p>
-                  <p className="text-2xl font-bold">${stats.totalSpent.toFixed(2)}</p>
+                  <p className="text-2xl font-bold">₹{stats.totalSpent.toFixed(2)}</p>
                 </div>
                 <CreditCard className="h-8 w-8 text-muted-foreground/50" />
               </div>
@@ -142,7 +142,7 @@ export default async function PatientBillingPage() {
                     <div className="flex items-center gap-4">
                       <div className="text-right">
                         <p className="font-semibold">
-                          ${payment.amount.toFixed(2)} {payment.currency}
+                          ₹{payment.amount.toFixed(2)} {payment.currency}
                         </p>
                         <p className="text-xs text-muted-foreground capitalize">{payment.paymentMethod || "Card"}</p>
                       </div>

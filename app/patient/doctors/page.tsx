@@ -63,10 +63,6 @@ export default function FindDoctorsPage() {
   })
   const [isBooking, setIsBooking] = useState(false)
 
-  useEffect(() => {
-    fetchDoctors()
-  }, [search, specialization])
-
   const fetchDoctors = async () => {
     setLoading(true)
     try {
@@ -77,18 +73,35 @@ export default function FindDoctorsPage() {
       }
 
       const response = await fetch(`/api/doctors?${params}`)
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
       const data = await response.json()
 
-      if (data.success) {
+      if (data.success && Array.isArray(data.data)) {
         setDoctors(data.data)
+      } else {
+        console.error("Unexpected API response:", data)
+        setDoctors([])
+        if (data.error) {
+          toast.error(data.error || "Failed to load doctors")
+        }
       }
     } catch (error) {
       console.error("Error fetching doctors:", error)
       toast.error("Failed to load doctors")
+      setDoctors([])
     } finally {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    fetchDoctors()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, specialization])
 
   const handleBook = (doctor: Doctor) => {
     setSelectedDoctor(doctor)
@@ -170,6 +183,17 @@ export default function FindDoctorsPage() {
                   ))}
                 </SelectContent>
               </Select>
+              {(search || specialization) && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSearch("")
+                    setSpecialization("")
+                  }}
+                >
+                  Show All Doctors
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -190,7 +214,11 @@ export default function FindDoctorsPage() {
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {doctors.map((doctor) => (
-              <Card key={doctor.id} className="overflow-hidden">
+              <Card
+                key={doctor.id}
+                className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
+                onClick={() => handleBook(doctor)}
+              >
                 <CardHeader className="pb-4">
                   <div className="flex items-start gap-4">
                     <Avatar className="h-16 w-16">
@@ -210,8 +238,10 @@ export default function FindDoctorsPage() {
                       <CardDescription>{doctor.specialization}</CardDescription>
                       <div className="flex items-center gap-1 mt-1">
                         <Star className="h-4 w-4 fill-warning text-warning" />
-                        <span className="text-sm font-medium">{doctor.rating.toFixed(1)}</span>
-                        <span className="text-sm text-muted-foreground">({doctor.totalReviews} reviews)</span>
+                        <span className="text-sm font-medium">
+                          {typeof doctor.rating === "number" ? doctor.rating.toFixed(1) : (Number(doctor.rating) || 0).toFixed(1)}
+                        </span>
+                        <span className="text-sm text-muted-foreground">({doctor.totalReviews || 0} reviews)</span>
                       </div>
                     </div>
                   </div>
@@ -226,9 +256,9 @@ export default function FindDoctorsPage() {
                       <Clock className="h-4 w-4" />
                       <span>{doctor.experienceYears} years exp.</span>
                     </div>
-                    <Badge variant="secondary">${doctor.consultationFee}/session</Badge>
+                    <Badge variant="secondary">₹{doctor.consultationFee}/session</Badge>
                   </div>
-                  <Button className="w-full" onClick={() => handleBook(doctor)}>
+                  <Button className="w-full" onClick={(e) => { e.stopPropagation(); handleBook(doctor); }}>
                     <Calendar className="mr-2 h-4 w-4" />
                     Book Appointment
                   </Button>
@@ -295,7 +325,7 @@ export default function FindDoctorsPage() {
             {selectedDoctor && (
               <div className="rounded-lg bg-muted p-4">
                 <p className="text-sm font-medium">Consultation Fee</p>
-                <p className="text-2xl font-bold">${selectedDoctor.consultationFee}</p>
+                <p className="text-2xl font-bold">₹{selectedDoctor.consultationFee}</p>
               </div>
             )}
           </div>

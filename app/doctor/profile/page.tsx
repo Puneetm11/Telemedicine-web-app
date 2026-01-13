@@ -159,7 +159,7 @@ export default function DoctorProfilePage() {
                   <p className="text-muted-foreground">{profile.specialization}</p>
                   <div className="flex items-center gap-2 mt-2">
                     <Star className="h-4 w-4 fill-warning text-warning" />
-                    <span className="font-medium">{profile.rating?.toFixed(1) || "0.0"}</span>
+                    <span className="font-medium">{(Number(profile.rating) || 0).toFixed(1)}</span>
                     <span className="text-sm text-muted-foreground">({profile.totalReviews || 0} reviews)</span>
                     {profile.isVerified && <Badge className="bg-success text-success-foreground ml-2">Verified</Badge>}
                   </div>
@@ -266,7 +266,7 @@ export default function DoctorProfilePage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="fee">Consultation Fee ($)</Label>
+                    <Label htmlFor="fee">Consultation Fee (₹)</Label>
                     <Input
                       id="fee"
                       type="number"

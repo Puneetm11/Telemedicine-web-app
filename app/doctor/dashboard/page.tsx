@@ -6,9 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Calendar, Users, Clock, DollarSign, ArrowRight, CheckCircle, XCircle } from "lucide-react"
+import { Calendar, Users, Clock, DollarSign, ArrowRight, CheckCircle } from "lucide-react"
 import Link from "next/link"
 import { format, startOfMonth, endOfMonth } from "date-fns"
+import { PendingRequests } from "@/components/doctor/pending-requests"
 
 async function getDoctorStats(userId: string) {
   const today = new Date().toISOString().split("T")[0]
@@ -64,7 +65,7 @@ async function getPendingAppointments(userId: string) {
   return sql`
     SELECT 
       a.id, a.scheduled_at as "scheduledAt", a.status, a.symptoms,
-      u.first_name as "patientFirstName", u.last_name as "patientLastName",
+      u.id as "patientId", u.first_name as "patientFirstName", u.last_name as "patientLastName",
       u.avatar_url as "patientAvatar"
     FROM appointments a
     JOIN users u ON a.patient_id = u.id
@@ -103,7 +104,7 @@ export default async function DoctorDashboard() {
           />
           <StatsCard
             title="Monthly Earnings"
-            value={`$${stats.monthlyEarnings.toFixed(0)}`}
+            value={`₹${stats.monthlyEarnings.toFixed(0)}`}
             icon={<DollarSign className="h-6 w-6" />}
           />
           <StatsCard
@@ -182,45 +183,7 @@ export default async function DoctorDashboard() {
               </div>
             </CardHeader>
             <CardContent>
-              {pendingAppointments.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-8 text-center">
-                  <CheckCircle className="h-12 w-12 text-muted-foreground/50 mb-4" />
-                  <p className="text-muted-foreground">All caught up!</p>
-                  <p className="text-sm text-muted-foreground">No pending requests</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {pendingAppointments.map((apt: Record<string, unknown>) => (
-                    <div key={apt.id as string} className="flex items-center gap-4 p-3 rounded-lg border">
-                      <Avatar>
-                        <AvatarImage src={(apt.patientAvatar as string) || undefined} />
-                        <AvatarFallback className="bg-primary/10 text-primary">
-                          {(apt.patientFirstName as string)[0]}
-                          {(apt.patientLastName as string)[0]}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">
-                          {apt.patientFirstName as string} {apt.patientLastName as string}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {format(new Date(apt.scheduledAt as string), "MMM d 'at' h:mm a")}
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        <form action={`/api/appointments/${apt.id}/confirm`} method="POST">
-                          <Button size="icon" variant="ghost" className="h-8 w-8 text-success hover:text-success">
-                            <CheckCircle className="h-5 w-5" />
-                          </Button>
-                        </form>
-                        <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive">
-                          <XCircle className="h-5 w-5" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <PendingRequests appointments={pendingAppointments as any} />
             </CardContent>
           </Card>
         </div>

@@ -82,12 +82,12 @@ export default async function DoctorEarningsPage() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <StatsCard
             title="Total Earnings"
-            value={`$${stats.totalEarnings.toFixed(2)}`}
+            value={`₹${stats.totalEarnings.toFixed(2)}`}
             icon={<DollarSign className="h-6 w-6" />}
           />
           <StatsCard
             title="This Month"
-            value={`$${stats.monthlyEarnings.toFixed(2)}`}
+            value={`₹${stats.monthlyEarnings.toFixed(2)}`}
             icon={<Calendar className="h-6 w-6" />}
             trend={
               stats.growthRate !== 0
@@ -97,12 +97,12 @@ export default async function DoctorEarningsPage() {
           />
           <StatsCard
             title="This Week"
-            value={`$${stats.weeklyEarnings.toFixed(2)}`}
+            value={`₹${stats.weeklyEarnings.toFixed(2)}`}
             icon={<TrendingUp className="h-6 w-6" />}
           />
           <StatsCard
             title="Pending"
-            value={`$${stats.pendingPayments.toFixed(2)}`}
+            value={`₹${stats.pendingPayments.toFixed(2)}`}
             icon={<CreditCard className="h-6 w-6" />}
           />
         </div>
@@ -133,7 +133,7 @@ export default async function DoctorEarningsPage() {
                     </div>
                     <div className="flex items-center gap-4">
                       <p className="font-semibold">
-                        ${(payment.amount as number).toFixed(2)} {payment.currency as string}
+                        ₹{(payment.amount as number).toFixed(2)} {payment.currency as string}
                       </p>
                       <Badge
                         variant={(payment.status as string) === "completed" ? "default" : "secondary"}
